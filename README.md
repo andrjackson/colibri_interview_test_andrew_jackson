@@ -14,8 +14,7 @@ whichever workspace/environment you like without editing code. Bronze uses Auto 
 re-running only ingests new files
 
 ## HOW TO RUN
-To run them as a single scheduled job, deploy the bundle:
-
+To run them as a single scheduled job, deploy the bundle in the CLI using these commands, or just use the databricks UI to autodeploy.
 ```bash
 databricks bundle deploy -t dev
 databricks bundle run wind_turbine_pipeline -t dev
@@ -26,4 +25,4 @@ databricks bundle run wind_turbine_pipeline -t dev
 - Valid but
   unusual readings are kept and shown as anomolies
 - Bronze ingests incrementally (Auto Loader, exactly-once via the checkpoint);
-- silver and gold are rebuilt from the layer below on each run, so re-running is safe
+- silver and gold are rebuilt from the layer below on each run (overwrite, not append), so re-running is safe
