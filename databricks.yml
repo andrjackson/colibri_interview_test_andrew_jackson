@@ -1,0 +1,75 @@
+# databricks bundle deploy -t dev
+# databricks bundle run wind_turbine_pipeline -t dev
+# or just deploy in the UI above notebook!
+bundle:
+  name: wind-turbine-pipeline
+
+variables:
+  catalog:
+    default: colibri_dev
+  schema:
+    default: wind
+  source_volume:
+    default: landing_zone
+  checkpoint_volume:
+    default: checkpoints
+
+resources:
+  jobs:
+    wind_turbine_pipeline:
+      name: wind-turbine-pipeline
+          # I am on the free version with only serverless compute, so I commented this out below but could define your job cluster.
+      # job_clusters:
+      #   - job_cluster_key: pipeline_cluster
+      #     new_cluster:
+      #       spark_version: "17.3.x-scala2.12"
+      #       node_type_id: "i3.xlarge"
+      #       num_workers: 1
+          # schedule deactivated because I dont want to forget this
+      # schedule:
+      #   quartz_cron_expression: "0 0 * * * ?"  # midnight every day
+      #   timezone_id: "UTC"
+      tasks:
+        - task_key: bronze
+          # job_cluster_key: pipeline_cluster
+          notebook_task:
+            notebook_path: ./pipeline/01_bronze/01_bronze_ingest.py
+            base_parameters: 
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              source_volume: ${var.source_volume}
+              checkpoint_volume: ${var.checkpoint_volume}
+        - task_key: silver
+          # job_cluster_key: pipeline_cluster
+          depends_on: [{ task_key: bronze }]
+          notebook_task:
+            notebook_path: ./pipeline/02_silver/02_silver_clean.py
+            base_parameters: 
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              source_volume: ${var.source_volume}
+              checkpoint_volume: ${var.checkpoint_volume}
+        - task_key: gold
+          # job_cluster_key: pipeline_cluster
+          depends_on: [{ task_key: silver }]
+          notebook_task:
+            notebook_path: ./pipeline/03_gold/03_gold_summary_anomalies.py
+            base_parameters: 
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              source_volume: ${var.source_volume}
+              checkpoint_volume: ${var.checkpoint_volume}
+
+targets:
+  dev:
+    default: true
+    workspace:
+      host: https://dbc-d8908245-858f.cloud.databricks.com
+    variables:
+      catalog: colibri_dev
+      schema: wind
+  prod:
+    mode: production
+    variables:
+      catalog: colibri_prod
+      schema: wind
